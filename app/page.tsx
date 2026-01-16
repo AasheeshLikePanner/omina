@@ -264,7 +264,7 @@ ${text.slice(0, 1500)}
           setPipelineStatus("Reading Document");
           try {
             const { ragEngine } = await import('@/lib/rag');
-            const results = await ragEngine.searchContext(searchQuery, selectedPdf.id);
+            const results = await ragEngine.searchContext(searchQuery, selectedPdf.id as number);
             if (results.length > 0) {
               const pdfContext = results.slice(0, 5).map(r => `(P${r.pageIndex + 1}): ${r.text.slice(0, 800)}`).join('\n\n');
               contextParts.push(`--- DOCUMENT SNIPPETS ---
