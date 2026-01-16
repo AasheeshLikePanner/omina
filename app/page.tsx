@@ -50,6 +50,34 @@ function HomeContent() {
   const llmRef = useRef<WebLLMService | null>(null);
   const dragCounter = useRef(0);
   const hasShownReadyToast = useRef(false);
+  const dragTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const handleWindowDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      if (e.dataTransfer?.types.includes('Files')) {
+        setIsWindowDragging(true);
+        if (dragTimeoutRef.current) clearTimeout(dragTimeoutRef.current);
+        dragTimeoutRef.current = setTimeout(() => setIsWindowDragging(false), 150);
+      }
+    };
+
+    const handleWindowDrop = () => {
+      setIsWindowDragging(false);
+      if (dragTimeoutRef.current) clearTimeout(dragTimeoutRef.current);
+    };
+
+    window.addEventListener('dragover', handleWindowDragOver);
+    window.addEventListener('drop', handleWindowDrop);
+    window.addEventListener('dragend', handleWindowDrop);
+    
+    return () => {
+      window.removeEventListener('dragover', handleWindowDragOver);
+      window.removeEventListener('drop', handleWindowDrop);
+      window.removeEventListener('dragend', handleWindowDrop);
+      if (dragTimeoutRef.current) clearTimeout(dragTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -331,14 +359,22 @@ Question: ${text}` : text);
     setSidebarCollapsed(false);
   }, [router]);
 
-  const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); dragCounter.current++; if (e.dataTransfer.items.length > 0) setIsWindowDragging(true); };
-  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); dragCounter.current--; if (dragCounter.current === 0) setIsWindowDragging(false); };
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); };
-  const handleDrop = useCallback(async (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsWindowDragging(false); dragCounter.current = 0; const file = e.dataTransfer.files[0]; if (file && file.type === 'application/pdf') { const pdfId = await db.pdfs.add({ name: file.name, blob: file, type: file.type, size: file.size, lastRead: Date.now(), currentPage: 1 }); handleSelectPDF(pdfId as number); toast.success(`Imported ${file.name}`); } }, [handleSelectPDF]);
-
   return (
-    <main className="flex h-screen bg-[#161616] text-foreground overflow-hidden relative" onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
-      {isWindowDragging && <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-[100] border-4 border-dashed border-primary flex items-center justify-center pointer-events-none transition-all animate-in fade-in zoom-in duration-300"><div className="bg-[#1a1a1a] p-8 rounded-2xl border border-primary/30 shadow-2xl flex flex-col items-center gap-4 text-center"><CaretRight weight="bold" className="w-12 h-12 text-primary rotate-90 animate-bounce" /><h3 className="text-xl font-bold text-zinc-100">Drop PDF to Import</h3></div></div>}
+    <main className="flex h-screen bg-[#161616] text-foreground overflow-hidden relative">
+      <AnimatePresence>
+        {isWindowDragging && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-[100] flex items-center justify-center pointer-events-none"
+          >
+            <div className="text-[9px] font-bold text-white/30 uppercase tracking-[1.5em] ml-[1.5em] animate-pulse">
+              Release to Import
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {isMounted ? (
         <>
           <Sidebar onSelectPDF={handleSelectPDF} selectedPdfId={selectedPdf?.id} modelStatus={modelStatus} currentModel={currentModel} onModelChange={handleModelChange} isCollapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} onImportNew={handleImportNew} showNotes={showNotesPanel} onToggleNotes={() => setShowNotesPanel(!showNotesPanel)} showChat={showChat} onToggleChat={() => setShowChat(!showChat)} />
