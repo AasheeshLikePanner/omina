@@ -202,14 +202,34 @@ export function AIChat({
                     {m.role === 'user' ? <User className="w-3.5 h-3.5" /> : <Robot className="w-3.5 h-3.5" />}
                   </div>
                   <div className={cn("flex-1 min-w-0 max-w-[85%]", m.role === 'user' ? "flex justify-end" : "flex justify-start")}>
-                    <div className={cn("relative px-3 py-2 rounded-2xl text-sm shadow-sm prose prose-invert prose-xs max-w-none break-words [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:pl-4 [&>ol]:pl-4", m.role === 'user' ? "bg-[#2A2A2A] text-zinc-100 rounded-tr-sm border border-[#333]" : "bg-[#161616] text-zinc-300 rounded-tl-sm border border-[#222]")}>
-                      {m.role === 'assistant' && i === messages.length - 1 && isStreaming ? (
-                        <SmoothStreamingText content={m.content} />
-                      ) : (
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
-                      )}
-                    </div>
-                  </div>
+                                                            <div className={cn(
+                                                              "relative px-3.5 py-2.5 rounded-2xl text-sm shadow-sm prose prose-invert prose-p:leading-relaxed prose-pre:bg-[#000]/30 prose-pre:border prose-pre:border-white/5 max-w-none break-words",
+                                                              m.role === 'user'
+                                                                ? "bg-[#2A2A2A] text-zinc-100 rounded-tr-sm border border-[#333]"
+                                                                : "bg-[#161616] text-zinc-300 rounded-tl-sm border border-[#222]"
+                                                            )}>
+                                                              <ReactMarkdown 
+                                                                remarkPlugins={[remarkGfm]}
+                                                                components={{
+                                                                  strong: ({node, ...props}) => {
+                                                                    const content = String(props.children);
+                                                                    if (content.startsWith('[Page')) {
+                                                                      return <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold text-[10px] uppercase border border-primary/20 mx-0.5">{content}</span>;
+                                                                    }
+                                                                    if (content.startsWith('[Web')) {
+                                                                      return <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 font-bold text-[10px] uppercase border border-amber-500/20 mx-0.5">{content}</span>;
+                                                                    }
+                                                                    if (content.toLowerCase().includes('chapter')) {
+                                                                      return <span className="text-emerald-400 font-extrabold underline underline-offset-4 decoration-emerald-400/30">{content}</span>;
+                                                                    }
+                                                                    return <strong className="text-zinc-100 font-bold" {...props} />;
+                                                                  }
+                                                                }}
+                                                              >
+                                                                {m.content}
+                                                              </ReactMarkdown>
+                                                            </div>
+                                                          </div>
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -313,13 +333,13 @@ export function AIChat({
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
-            disabled={!isModelLoaded || isStreaming}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!isStreaming && input.trim()) handleSubmit(e); } }}
+            disabled={!isModelLoaded}
             placeholder={isModelLoaded ? "Ask a question..." : "Loading model..."}
             className="min-h-[40px] max-h-[120px] bg-transparent border-none text-sm focus-visible:ring-0 px-1 py-2 text-zinc-200 placeholder:text-zinc-500 resize-none overflow-y-auto"
           />
           <Button onClick={handleSubmit} size="icon" disabled={!input.trim() || isStreaming || !isModelLoaded} className="h-8 w-8 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shrink-0 mb-0.5">
-            <PaperPlaneRight weight="fill" className="w-4 h-4" />
+            {isStreaming ? <CircleNotch className="w-4 h-4 animate-spin" /> : <PaperPlaneRight weight="fill" className="w-4 h-4" />}
           </Button>
         </div>
 

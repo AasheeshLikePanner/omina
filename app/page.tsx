@@ -195,22 +195,25 @@ ${pdfContext}
       const newMessages = [...messages, { role: 'user' as const, content }];
       setMessages(newMessages);
 
-      const chatMessages = [
-        {
-          role: "system" as const, 
-          content: `You are a helpful and detailed AI researcher. 
-          Use the provided context (Web/Document) to answer.
-          INSTRUCTIONS:
-          1. Provide a comprehensive and descriptive answer.
-          2. If fragments are from different pages, try to connect them logically to form a helpful summary.
-          3. Cite sources like [Web] or [Page X].
-          4. If the data is truly missing, use your general knowledge but mention it.`
-        },
-        ...messages.slice(-4),
-        { role: 'user' as const, content: contextParts.length > 0 ? `${contextParts.join('\n\n')}\n\nQuestion: ${content}` : content }
-      ];
-
-      const chunks = await llmRef.current.chat(chatMessages);
+            const chatMessages = [
+              { 
+                role: "system" as const, 
+                content: `You are an insightful AI Assistant. Use Markdown to format your response for high readability.
+                
+                COLOR FORMATTING RULES:
+                1. CITATIONS: Use **[Page X]** for document sources and **[Web]** for internet sources.
+                2. CHAPTERS: If you find a chapter name in the snippets, format it as **Chapter: Name**.
+                3. KEY TERMS: Use **bold text** for important names or concepts.
+                
+                ANSWERING RULES:
+                1. Use provided context (Web/Document). 
+                2. If fragments are from different pages, connect them logically.
+                3. Be descriptive. For Radha/Krishna topics, focus on the narrative flow.`
+              },
+              ...messages.slice(-4),
+              { role: 'user' as const, content: contextParts.length > 0 ? `${contextParts.join('\n\n')}\n\nUser Question: ${content}` : content }
+            ];
+            const chunks = await llmRef.current.chat(chatMessages);
       let assistantContent = "";
       setMessages([...newMessages, { role: 'assistant', content: "" }]);
       
