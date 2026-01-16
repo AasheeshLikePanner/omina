@@ -13,11 +13,10 @@ import {
   Sidebar as SidebarIcon,
   Trash,
   Notebook,
-  ChatCircleDots
+  ChatCircleDots,
+  Keyboard
 } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { APP_MODELS } from '@/lib/webllm';
 import { Progress } from '@/components/ui/progress';
 import {
   DropdownMenu,
@@ -27,6 +26,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { APP_MODELS } from '@/lib/webllm';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface SidebarProps {
   onSelectPDF: (pdf: PDFFile) => void;
@@ -173,22 +180,28 @@ export function Sidebar({
           <button
             onClick={onToggleNotes}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all group/nav",
+              "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all group/nav",
               showNotes ? "text-zinc-100 font-medium bg-white/5" : "text-zinc-500 hover:text-zinc-300 hover:bg-[#1c1c1c]"
             )}
           >
-            <Notebook weight={showNotes ? "fill" : "regular"} className={cn("w-4 h-4", showNotes ? "text-primary" : "group-hover/nav:text-zinc-400")} />
-            <span className="text-xs">Notes & Bookmarks</span>
+            <div className="flex items-center gap-3">
+              <Notebook weight={showNotes ? "fill" : "regular"} className={cn("w-4 h-4", showNotes ? "text-primary" : "group-hover/nav:text-zinc-400")} />
+              <span className="text-xs">Notebook</span>
+            </div>
+            <kbd className="hidden group-hover/nav:block px-1.5 py-0.5 rounded bg-zinc-800 text-[9px] font-mono text-zinc-500 uppercase">⌘L</kbd>
           </button>
           <button
             onClick={onToggleChat}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all group/nav mt-0.5",
+              "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all group/nav mt-0.5",
               showChat ? "text-zinc-100 font-medium bg-white/5" : "text-zinc-500 hover:text-zinc-300 hover:bg-[#1c1c1c]"
             )}
           >
-            <ChatCircleDots weight={showChat ? "fill" : "regular"} className={cn("w-4 h-4", showChat ? "text-primary" : "group-hover/nav:text-zinc-400")} />
-            <span className="text-xs">AI Assistant</span>
+            <div className="flex items-center gap-3">
+              <ChatCircleDots weight={showChat ? "fill" : "regular"} className={cn("w-4 h-4", showChat ? "text-primary" : "group-hover/nav:text-zinc-400")} />
+              <span className="text-xs">AI Assistant</span>
+            </div>
+            <kbd className="hidden group-hover/nav:block px-1.5 py-0.5 rounded bg-zinc-800 text-[9px] font-mono text-zinc-500 uppercase">⌘J</kbd>
           </button>
 
           <div className="h-4" />
@@ -235,6 +248,30 @@ export function Sidebar({
           )}
         </div>
       </ScrollArea>
+
+      <div className="p-5 border-t border-[#2A2A2A]/50 bg-[#111]/20">
+        <div className="flex items-center gap-2 mb-4 px-1">
+          <Keyboard weight="bold" className="w-4 h-4 text-primary/70" />
+          <label className="text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-400">
+            Quick Commands
+          </label>
+        </div>
+        <div className="space-y-3.5 px-1">
+          {[
+            { key: '⌘B', label: 'Toggle Sidebar' },
+            { key: '⌘J', label: 'AI Assistant' },
+            { key: '⌘L', label: 'Notebook' },
+            { key: '⌘/', label: 'Focus AI' },
+          ].map((s) => (
+            <div key={s.label} className="flex items-center justify-between group cursor-default">
+              <span className="text-xs text-zinc-400 group-hover:text-zinc-100 transition-colors font-medium">{s.label}</span>
+              <kbd className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] font-mono text-zinc-200 group-hover:border-primary/50 group-hover:text-primary transition-all">
+                {s.key}
+              </kbd>
+            </div>
+          ))}
+        </div>
+      </div>
     </aside>
   );
 }

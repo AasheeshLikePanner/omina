@@ -19,8 +19,10 @@ import {
     CaretRight,
     Plus,
     Sparkle,
-    Clock
+    Clock,
+    MagnifyingGlass
 } from '@phosphor-icons/react';
+import { Input } from '@/components/ui/input';
 
 interface NotesPanelProps {
     pdfId: number;
@@ -32,6 +34,7 @@ interface NotesPanelProps {
 export function NotesPanel({ pdfId, currentPage, onJumpToPage, onAskAI }: NotesPanelProps) {
     const [notes, setNotes] = useState<Note[]>([]);
     const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editContent, setEditContent] = useState('');
     const [newNoteContent, setNewNoteContent] = useState('');
@@ -39,6 +42,16 @@ export function NotesPanel({ pdfId, currentPage, onJumpToPage, onAskAI }: NotesP
     const [notesExpanded, setNotesExpanded] = useState(true);
     const [bookmarksExpanded, setBookmarksExpanded] = useState(true);
     const [viewNote, setViewNote] = useState<Note | null>(null);
+
+    // Filtered data based on search
+    const filteredNotes = notes.filter(note => 
+        note.content.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (note.selectedText?.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
+    const filteredBookmarks = bookmarks.filter(bookmark => 
+        bookmark.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     // Load notes and bookmarks
     const loadData = useCallback(async () => {
@@ -108,36 +121,47 @@ export function NotesPanel({ pdfId, currentPage, onJumpToPage, onAskAI }: NotesP
     return (
         <div className="h-full flex flex-col bg-[#1a1a1a] border-l border-[#2A2A2A]">
             {/* Header */}
-            <div className="p-4 border-b border-[#2A2A2A] flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-zinc-200">Notes & Bookmarks</h3>
-                <div className="flex gap-1">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleAddBookmark}
-                        disabled={isCurrentPageBookmarked}
-                        className={cn(
-                            "h-7 w-7 p-0",
-                            isCurrentPageBookmarked ? "text-yellow-500" : "text-zinc-400 hover:text-yellow-500"
-                        )}
-                        title={isCurrentPageBookmarked ? "Page bookmarked" : "Bookmark this page"}
-                    >
-                        <BookmarkIcon className="w-4 h-4" fill={isCurrentPageBookmarked ? "currentColor" : "none"} />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowAddNote(true)}
-                        className="h-7 w-7 p-0 text-zinc-400 hover:text-primary"
-                        title="Add note for this page"
-                    >
-                        <ChatCircleDots weight="bold" className="w-4 h-4" />
-                    </Button>
+            <div className="p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-zinc-100 uppercase tracking-widest">Notebook</h3>
+                    <div className="flex gap-1">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleAddBookmark}
+                            disabled={isCurrentPageBookmarked}
+                            className={cn(
+                                "h-7 w-7 p-0",
+                                isCurrentPageBookmarked ? "text-yellow-500" : "text-zinc-500 hover:text-yellow-500 hover:bg-white/5"
+                            )}
+                            title={isCurrentPageBookmarked ? "Page bookmarked" : "Bookmark this page"}
+                        >
+                            <BookmarkIcon className="w-4 h-4" fill={isCurrentPageBookmarked ? "currentColor" : "none"} />
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="relative group">
+                    <MagnifyingGlass className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600 group-focus-within:text-primary transition-colors" />
+                    <Input
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Search notes & bookmarks..."
+                        className="h-9 pl-9 bg-[#111] border-[#2A2A2A] text-xs text-zinc-300 placeholder:text-zinc-600 focus:border-primary/50 transition-all rounded-lg"
+                    />
+                    {searchTerm && (
+                        <button 
+                            onClick={() => setSearchTerm('')}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-300"
+                        >
+                            <X weight="bold" className="w-3 h-3" />
+                        </button>
+                    )}
                 </div>
             </div>
 
             <ScrollArea className="flex-1">
-                <div className="p-4 space-y-6">
+                <div className="p-4 pt-2 space-y-6">
                     {/* Add Note Area */}
                     {!showAddNote ? (
                         <button
@@ -233,14 +257,16 @@ export function NotesPanel({ pdfId, currentPage, onJumpToPage, onAskAI }: NotesP
                         >
                             {notesExpanded ? <CaretDown weight="bold" className="w-3 h-3" /> : <CaretRight weight="bold" className="w-3 h-3" />}
                             <ChatCircleDots weight="bold" className="w-3.5 h-3.5" />
-                            Notes ({notes.length})
+                            Notes ({filteredNotes.length})
                         </button>
                         {notesExpanded && (
                             <div className="space-y-2 pl-2">
-                                {notes.length === 0 ? (
-                                    <p className="text-xs text-zinc-600 pl-4 py-2 italic">No notes created yet</p>
+                                {filteredNotes.length === 0 ? (
+                                    <p className="text-xs text-zinc-600 pl-4 py-2 italic">
+                                        {searchTerm ? "No notes matching your search" : "No notes created yet"}
+                                    </p>
                                 ) : (
-                                    notes.map((note) => (
+                                    filteredNotes.map((note) => (
                                         <div
                                             key={note.id}
                                             onClick={() => setViewNote(note)}

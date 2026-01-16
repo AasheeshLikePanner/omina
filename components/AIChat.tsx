@@ -73,6 +73,15 @@ export function AIChat({
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const capsRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const handleFocusEvent = () => {
+      inputRef.current?.focus();
+    };
+    window.addEventListener('focus-ai-chat', handleFocusEvent);
+    return () => window.removeEventListener('focus-ai-chat', handleFocusEvent);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -238,6 +247,7 @@ export function AIChat({
             <Sparkle weight={showCaps ? "fill" : "bold"} className="w-4 h-4" />
           </Button>
           <Textarea
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!isStreaming && input.trim()) handleSubmit(e); } }}

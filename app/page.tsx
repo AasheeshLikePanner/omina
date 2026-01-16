@@ -47,6 +47,35 @@ export default function Home() {
   const hasShownReadyToast = useRef(false);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const modifier = isMac ? e.metaKey : e.ctrlKey;
+
+      if (modifier && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        setSidebarCollapsed(prev => !prev);
+      }
+      if (modifier && e.key.toLowerCase() === 'j') {
+        e.preventDefault();
+        setShowChat(prev => !prev);
+      }
+      if (modifier && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        setShowNotesPanel(prev => !prev);
+      }
+      if (modifier && e.key === '/') {
+        e.preventDefault();
+        if (!showChat) setShowChat(true);
+        // Dispatch custom event to focus chat
+        window.dispatchEvent(new CustomEvent('focus-ai-chat'));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showChat]);
+
+  useEffect(() => {
     setIsMounted(true);
     const savedKey = localStorage.getItem('omnia_jina_key');
     if (savedKey) setJinaKey(savedKey);
@@ -296,8 +325,8 @@ Question: ${text}` : text);
               {selectedPdf && (showNotesPanel || showChat) && (
                 <div className="flex h-full relative border-l border-[#2A2A2A]">
                   <AnimatePresence mode="popLayout" initial={false}>
-                    {showNotesPanel && <motion.div key="notes-panel" initial={{ width: 0, opacity: 0 }} animate={{ width: 320, opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 30 }} className="h-full overflow-hidden border-r border-[#2A2A2A] shrink-0"><NotesPanel key={notesPanelKey} pdfId={selectedPdf.id!} currentPage={currentPage} onJumpToPage={handleJumpToPage} onAskAI={handleAskAI} /></motion.div>}
-                    {showChat && <motion.div key="ai-chat" initial={{ width: 0, opacity: 0 }} animate={{ width: 380, opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 30 }} className="h-full overflow-hidden bg-[#1a1a1a] shrink-0"><AIChat messages={messages} onSendMessage={handleSendMessage} onClearChat={() => setMessages([])} isStreaming={isStreaming} isModelLoaded={modelStatus.isLoaded} ragEnabled={ragEnabled} webEnabled={webEnabled} onToggleRag={setRagEnabled} onToggleWeb={setWebEnabled} isIndexing={isIndexing} aiMode={aiMode} onSetAiMode={setAiMode} jinaKey={jinaKey} onSetJinaKey={handleJinaKeyChange} status={pipelineStatus} /></motion.div>}
+                    {showNotesPanel && <motion.div key="notes-panel" initial={{ width: 0, opacity: 0 }} animate={{ width: 380, opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 30 }} className="h-full overflow-hidden border-r border-[#2A2A2A] shrink-0"><NotesPanel key={notesPanelKey} pdfId={selectedPdf.id!} currentPage={currentPage} onJumpToPage={handleJumpToPage} onAskAI={handleAskAI} /></motion.div>}
+                    {showChat && <motion.div key="ai-chat" initial={{ width: 0, opacity: 0 }} animate={{ width: 450, opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 30 }} className="h-full overflow-hidden bg-[#1a1a1a] shrink-0"><AIChat messages={messages} onSendMessage={handleSendMessage} onClearChat={() => setMessages([])} isStreaming={isStreaming} isModelLoaded={modelStatus.isLoaded} ragEnabled={ragEnabled} webEnabled={webEnabled} onToggleRag={setRagEnabled} onToggleWeb={setWebEnabled} isIndexing={isIndexing} aiMode={aiMode} onSetAiMode={setAiMode} jinaKey={jinaKey} onSetJinaKey={handleJinaKeyChange} status={pipelineStatus} /></motion.div>}
                   </AnimatePresence>
                 </div>
               )}
