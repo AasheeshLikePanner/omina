@@ -252,9 +252,23 @@ export function Sidebar({
                     "w-3.5 h-3.5 shrink-0 transition-colors",
                     selectedPdfId === pdf.id ? "text-primary" : "text-zinc-800 group-hover/item:text-zinc-600"
                   )} />
-                  <span className="truncate text-[10px] font-medium tracking-tight uppercase max-w-[100px]" title={pdf.name}>
-                    {pdf.name}
-                  </span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate text-[10px] font-medium tracking-tight uppercase max-w-[100px]" title={pdf.name}>
+                      {pdf.name}
+                    </span>
+                    <div className="flex items-center gap-1.5 h-3">
+                      {pdf.discoveryStatus === 'learning' ? (
+                        <span className="text-[7px] font-bold text-primary/60 uppercase tracking-widest animate-pulse">
+                          Learning...
+                        </span>
+                      ) : pdf.discoveryStatus === 'complete' ? (
+                        <span className="text-[7px] font-bold text-emerald-500/60 uppercase tracking-widest flex items-center gap-1">
+                          <div className="w-1 h-1 rounded-full bg-emerald-500/40" />
+                          AI Optimized
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>

@@ -8,6 +8,10 @@ export interface PDFFile {
   size: number;
   lastRead: number;
   currentPage: number;
+  repairMap?: Record<string, string>;
+  discoveryStatus?: 'idle' | 'learning' | 'complete' | 'failed';
+  isNotesOpen?: boolean;
+  isChatOpen?: boolean;
 }
 
 export interface ChatMessage {
@@ -69,7 +73,7 @@ export class OmniaDB extends Dexie {
 
   constructor() {
     super('OmniaDB');
-    this.version(2).stores({
+    this.version(3).stores({
       pdfs: '++id, name, lastRead',
       messages: '++id, pdfId, timestamp',
       highlights: '++id, pdfId, pageIndex, createdAt',
@@ -81,7 +85,7 @@ export class OmniaDB extends Dexie {
 
 export const db = new OmniaDB();
 
-// Helper functions for notes
+// Helper functions
 export async function getNotesByPdf(pdfId: number): Promise<Note[]> {
   return db.notes.where('pdfId').equals(pdfId).sortBy('createdAt');
 }
@@ -98,7 +102,6 @@ export async function deleteNote(id: number): Promise<void> {
   await db.notes.delete(id);
 }
 
-// Helper functions for bookmarks
 export async function getBookmarksByPdf(pdfId: number): Promise<Bookmark[]> {
   return db.bookmarks.where('pdfId').equals(pdfId).sortBy('pageIndex');
 }
@@ -111,7 +114,6 @@ export async function deleteBookmark(id: number): Promise<void> {
   await db.bookmarks.delete(id);
 }
 
-// Helper functions for highlights  
 export async function getHighlightsByPdf(pdfId: number): Promise<Highlight[]> {
   return db.highlights.where('pdfId').equals(pdfId).sortBy('pageIndex');
 }

@@ -21,7 +21,8 @@ import {
   BookmarkSimple,
   ChatCircleDots,
   TextAa,
-  MagnifyingGlass
+  MagnifyingGlass,
+  Warning
 } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 
@@ -35,6 +36,7 @@ interface PDFViewerProps {
   onAddNote?: (pageIndex: number, selectedText: string) => void;
   onAddBookmark?: (pageIndex: number) => void;
   jumpToPage?: number;
+  repairMap?: Record<string, string>;
 }
 
 interface HighlightMenuProps {
@@ -43,47 +45,87 @@ interface HighlightMenuProps {
   onAddNote?: (pageIndex: number, selectedText: string) => void;
   currentPage: number;
   isDarkMode: boolean;
+  repairMap?: Record<string, string>;
 }
 
-const SANSKRIT_CHAR_MAP: Record<string, string> = {
-  'ƒ': 'ā', 'Ž': 'ā', 'Œ': 'ī', '¡': 'ī', '—': 'ū', '˜': 'ū',
-  '‚': 'ṛ', '„': 'ṛ', '…': 'ṝ', '£': 'ḷ',
-  '†': 'ṇ', '‡': 'ṇ', '‰': 'ṣ', 'š': 'ṣ', '™': 'ṭ', 'œ': 'ḍ',
-  'ˆ': 'ñ', '¤': 'ñ', '§': 'ṅ', 'ç': 'ś', '›': 'ś',
-  'Ð': '"', 'Ñ': '"', 'Ò': '"', 'Ó': '"', 'Ô': "'", 'Õ': "'", '–': '–', 'r': 'Ś',
+// Detect if text contains corrupted/broken character encoding
+const detectBrokenEncoding = (text: string): boolean => {
+  const brokenPatterns = [
+    /[\u0080-\u009F]/g,
+    /[™†‰]/g,
+    /[\uFFFD]/g,
+    /[\uE000-\uF8FF]/g,
+    /[^\x20-\x7E\u00A0-\u024F\u0900-\u097F\u0C00-\u0C7F\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF\u0600-\u06FF]/g
+  ];
+  const suspiciousCount = brokenPatterns.reduce((count, pattern) => {
+    const matches = text.match(pattern);
+    return count + (matches ? matches.length : 0);
+  }, 0);
+  return suspiciousCount > text.length * 0.2;
 };
 
-const cleanText = (text: string) => {
-  let result = text;
-  for (const [bad, good] of Object.entries(SANSKRIT_CHAR_MAP)) {
-    result = result.split(bad).join(good);
-  }
-  return result
-    .replace(/\brŒmatŒ\b/gi, 'Śrīmatī')
-    .replace(/\brŒla\b/gi, 'Śrīla')
-    .normalize('NFC')
-    .replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/g, "")
-    .replace(/ﬀ/g, "ff").replace(/ﬁ/g, "fi").replace(/ﬂ/g, "fl").replace(/ﬃ/g, "ffi").replace(/ﬄ/g, "ffl")
-    .replace(/¬/g, "")
-    .trim();
-};
-
-const HighlightMenu = ({ renderProps, onAskAI, onAddNote, currentPage, isDarkMode }: HighlightMenuProps) => {
-  const [mode, setMode] = useState<'menu' | 'ask'>('menu');
+const HighlightMenu = ({ renderProps, onAskAI, onAddNote, currentPage, isDarkMode, repairMap }: HighlightMenuProps) => {
+  const [mode, setMode] = useState<'menu' | 'ask' | 'broken'>('menu');
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const selectedText = cleanText(renderProps.selectedText);
+  
+  // Advanced Universal Text Repair: Applies the learned repairMap locally
+  const { selectedText, isBroken } = React.useMemo(() => {
+    let text = renderProps.selectedText;
+    
+    // Step 1: Normalize
+    text = text.normalize('NFKC');
+    
+    // Step 2: Apply the Learned Rosetta Stone (Repair Map)
+    if (repairMap) {
+      for (const [junk, real] of Object.entries(repairMap)) {
+        text = text.split(junk).join(real);
+      }
+    }
+    
+    // Step 3: Clean artifacts
+    text = text
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    return { selectedText: text, isBroken: detectBrokenEncoding(text) };
+  }, [renderProps.selectedText, repairMap]);
 
   useEffect(() => {
     if (mode === 'ask') inputRef.current?.focus();
   }, [mode]);
 
+  // Auto-detect broken text and switch to warning mode
+  useEffect(() => {
+    if (isBroken && mode === 'menu') {
+      setMode('broken');
+    }
+  }, [isBroken, mode]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && query.trim()) {
-      onAskAI?.(query, selectedText);
+      // If text is broken, warn user to describe what they see instead
+      if (isBroken) {
+        onAskAI?.(`[Note: The PDF has broken text encoding. User selected corrupted text: "${selectedText}"] ${query}`, selectedText);
+      } else {
+        onAskAI?.(query, selectedText);
+      }
       renderProps.cancel();
     }
     if (e.key === 'Escape') setMode('menu');
+  };
+
+  const handleAskAI = () => {
+    if (isBroken) {
+      // Automatically inform AI about broken encoding
+      onAskAI?.(
+        `The selected text appears corrupted due to PDF encoding issues. The raw text extracted is: "${selectedText}". Can you help identify what this text should say based on the document context?`,
+        selectedText
+      );
+    } else {
+      setMode('ask');
+    }
   };
 
   const isSingleWord = selectedText.trim().split(/\s+/).length === 1;
@@ -103,16 +145,63 @@ const HighlightMenu = ({ renderProps, onAskAI, onAddNote, currentPage, isDarkMod
         marginTop: '8px',
         display: 'flex',
         flexDirection: 'column',
-        minWidth: mode === 'ask' ? '240px' : 'auto'
+        minWidth: mode === 'ask' ? '240px' : mode === 'broken' ? '280px' : 'auto'
       }}
       className="animate-in fade-in zoom-in-95 duration-100"
     >
-      {mode === 'menu' ? (
+      {mode === 'broken' ? (
+        <div className="p-3 space-y-2">
+          <div className="flex items-start gap-2">
+            <Warning weight="fill" className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+            <div className="space-y-1.5">
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                This PDF has <strong>broken character encoding</strong>. The text appears as: 
+                <code className="block mt-1 px-2 py-1 bg-zinc-800 rounded text-[10px] font-mono text-orange-400">
+                  {selectedText}
+                </code>
+              </p>
+              <p className="text-[11px] text-zinc-400">
+                The visual text doesn't match the copied data.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-1.5 pt-1">
+            <button 
+              onClick={() => {
+                onAskAI?.(
+                  `The selected text has broken PDF encoding and appears as: "${selectedText}". Please help identify what this text actually says based on the surrounding document context.`,
+                  selectedText
+                );
+                renderProps.cancel();
+              }}
+              className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-primary/20 hover:bg-primary/30 rounded-md text-xs transition-colors text-primary font-medium"
+            >
+              <Sparkle weight="fill" className="w-3.5 h-3.5" />
+              Fix with AI
+            </button>
+            <button 
+              onClick={() => setMode('menu')}
+              className="px-2.5 py-1.5 hover:bg-zinc-500/20 rounded-md text-xs transition-colors text-zinc-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : mode === 'menu' ? (
         <div className="flex gap-1">
-          <button onClick={() => setMode('ask')} className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-zinc-500/20 rounded-md text-xs transition-colors text-zinc-200 whitespace-nowrap">
+          <button onClick={handleAskAI} className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-zinc-500/20 rounded-md text-xs transition-colors text-zinc-200 whitespace-nowrap">
             <Sparkle weight="fill" className="w-4 h-4 text-primary" /> Ask AI
           </button>
-          <button onClick={() => { onAskAI?.(isSingleWord ? `Define the word "${selectedText}" in the context of this document.` : `Explain this section simply: "${selectedText}"`, selectedText); renderProps.cancel(); }} className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-zinc-500/20 rounded-md text-xs transition-colors text-zinc-200 whitespace-nowrap">
+          <button 
+            onClick={() => { 
+              const prompt = isSingleWord 
+                ? `Define the word "${selectedText}" in the context of this document.` 
+                : `Explain this section simply: "${selectedText}"`;
+              onAskAI?.(prompt, selectedText); 
+              renderProps.cancel(); 
+            }} 
+            className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-zinc-500/20 rounded-md text-xs transition-colors text-zinc-200 whitespace-nowrap"
+          >
             {isSingleWord ? "Define" : "Explain"}
           </button>
           <div className="w-[1px] bg-zinc-700 my-1" />
@@ -123,9 +212,28 @@ const HighlightMenu = ({ renderProps, onAskAI, onAddNote, currentPage, isDarkMod
       ) : (
         <div className="flex items-center p-1 gap-1">
           <div className="relative flex-1">
-            <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={handleKeyDown} placeholder={isSingleWord ? "Define..." : "Ask about this..."} className="w-full bg-[#252525] border-none rounded px-2 py-1.5 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none" />
+            <input 
+              ref={inputRef} 
+              value={query} 
+              onChange={(e) => setQuery(e.target.value)} 
+              onKeyDown={handleKeyDown} 
+              placeholder={isBroken ? "Describe what you see..." : isSingleWord ? "Define..." : "Ask about this..."} 
+              className="w-full bg-[#252525] border-none rounded px-2 py-1.5 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none" 
+            />
           </div>
-          <button onClick={() => { if (query.trim()) { onAskAI?.(query, selectedText); renderProps.cancel(); } }} className="p-1.5 bg-primary/20 hover:bg-primary/30 text-primary rounded">
+          <button 
+            onClick={() => { 
+              if (query.trim()) { 
+                if (isBroken) {
+                  onAskAI?.(`[Broken PDF encoding detected: "${selectedText}"] ${query}`, selectedText);
+                } else {
+                  onAskAI?.(query, selectedText);
+                }
+                renderProps.cancel(); 
+              } 
+            }} 
+            className="p-1.5 bg-primary/20 hover:bg-primary/30 text-primary rounded"
+          >
             <Sparkle weight="fill" className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -135,7 +243,7 @@ const HighlightMenu = ({ renderProps, onAskAI, onAddNote, currentPage, isDarkMod
 };
 
 export function PDFViewer({
-  fileUrl, isDarkMode = true, initialPage = 0, onAskAI, onPageChange, onToggleTheme, onAddNote, onAddBookmark, jumpToPage
+  fileUrl, isDarkMode = true, initialPage = 0, onAskAI, onPageChange, onToggleTheme, onAddNote, onAddBookmark, jumpToPage, repairMap
 }: PDFViewerProps) {
   const [loading, setLoading] = useState(true);
   const [currentPageIndex, setCurrentPageIndex] = useState(initialPage);
@@ -144,8 +252,8 @@ export function PDFViewer({
     setCurrentPageIndex(initialPage);
   }, [initialPage]);
 
-  const propsRef = useRef({ isDarkMode, onAskAI, onToggleTheme, onAddNote, onAddBookmark, currentPageIndex });
-  propsRef.current = { isDarkMode, onAskAI, onToggleTheme, onAddNote, onAddBookmark, currentPageIndex };
+  const propsRef = useRef({ isDarkMode, onAskAI, onToggleTheme, onAddNote, onAddBookmark, currentPageIndex, repairMap });
+  propsRef.current = { isDarkMode, onAskAI, onToggleTheme, onAddNote, onAddBookmark, currentPageIndex, repairMap };
 
   const handlePageChange = (e: { currentPage: number }) => {
     setCurrentPageIndex(e.currentPage);
@@ -155,7 +263,7 @@ export function PDFViewer({
   const pageNavigationPluginInstance = pageNavigationPlugin();
   const highlightPluginInstance = highlightPlugin({
     renderHighlightTarget: (props: RenderHighlightTargetProps) => (
-      <HighlightMenu renderProps={props} onAskAI={propsRef.current.onAskAI} onAddNote={propsRef.current.onAddNote} currentPage={propsRef.current.currentPageIndex} isDarkMode={propsRef.current.isDarkMode || false} />
+      <HighlightMenu renderProps={props} onAskAI={propsRef.current.onAskAI} onAddNote={propsRef.current.onAddNote} currentPage={propsRef.current.currentPageIndex} isDarkMode={propsRef.current.isDarkMode || false} repairMap={propsRef.current.repairMap} />
     ),
   });
 

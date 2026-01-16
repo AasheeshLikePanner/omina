@@ -61,7 +61,7 @@ interface AIChatProps {
   status?: string;
 }
 
-export function AIChat({ 
+export function AIChat({
   messages, onSendMessage, onClearChat, isStreaming, isModelLoaded,
   onToggleRag, onToggleWeb, ragEnabled = true, webEnabled = false,
   isIndexing = false, aiMode = 'general', onSetAiMode, jinaKey = '', onSetJinaKey, status = ""
@@ -190,10 +190,10 @@ export function AIChat({
                         {m.role === 'assistant' && i === messages.length - 1 && isStreaming ? (
                           <MagicWordStream content={m.content} isStreaming={isStreaming} />
                         ) : (
-                          <ReactMarkdown 
+                          <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             components={{
-                              strong: ({node, ...props}) => {
+                              strong: ({ node, ...props }) => {
                                 const content = String(props.children);
                                 if (content.startsWith('[Page')) return <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold text-[10px] mx-0.5">{content}</span>;
                                 if (content.startsWith('[Web')) return <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 font-bold text-[10px] mx-0.5">{content}</span>;
@@ -259,12 +259,12 @@ export function AIChat({
             {isStreaming ? <CircleNotch className="w-4 h-4 animate-spin" /> : <PaperPlaneRight weight="fill" className="w-4 h-4" />}
           </Button>
         </div>
-        
+
         <div className="flex justify-between items-center mt-2 px-1 h-4">
           <div className="flex items-center gap-3">
-             <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-[0.2em] flex items-center gap-1.5">
-              <div className={cn("w-1.5 h-1.5 rounded-full", isModelLoaded ? "bg-green-500 shadow-[0_0_8px_rgba(var(--primary),0.4)]" : "bg-yellow-500")} />
-              {isModelLoaded ? "ONLINE" : "BOOTING"}
+            <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-[0.2em] flex items-center gap-1.5">
+              <div className={cn("w-1.5 h-1.5 rounded-full", isModelLoaded ? "bg-emerald-500 shadow-[0_0_8px_rgba(var(--primary),0.4)]" : "bg-primary animate-pulse")} />
+              {isModelLoaded ? "SYSTEM ONLINE" : "INITIALIZING ENGINE..."}
             </span>
             <div className="flex gap-2">
               {ragEnabled && <span className="text-[8px] font-extrabold text-primary/60 uppercase tracking-widest bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">PDF</span>}

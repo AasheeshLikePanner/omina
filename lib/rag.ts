@@ -1,4 +1,4 @@
-import { create, insert, search, type Orama } from '@orama/orama';
+import { create, insert, insertMultiple, search, type Orama } from '@orama/orama';
 
 export interface PDFChunk {
   text: string;
@@ -30,15 +30,14 @@ export class RAGEngine {
       schema: { text: 'string', pageIndex: 'number', pdfId: 'number' },
     });
 
-    for (const chunk of chunks) {
-      await insert(this.db, chunk);
+    if (chunks.length > 0) {
+      await insertMultiple(this.db, chunks);
     }
-    console.log(`[RAG] Indexed ${chunks.length} pages for PDF ${pdfId}`);
   }
 
   async searchContext(query: string, pdfId: number) {
     if (!this.db) return [];
-    
+
     // Safety: Orama requires a non-empty string for 'term'
     const safeQuery = String(query || "").trim();
     if (!safeQuery) return [];
