@@ -59,10 +59,6 @@ export default function Home() {
 
     llmRef.current = new WebLLMService((status) => {
       setModelStatus(status);
-      if (status.isLoaded && !hasShownReadyToast.current) {
-        toast.success("AI Engine Ready");
-        hasShownReadyToast.current = true;
-      }
     });
 
     const init = async () => {
@@ -78,6 +74,14 @@ export default function Home() {
     };
     init();
   }, []);
+
+  // Separate effect for the ready toast to ensure it only fires once
+  useEffect(() => {
+    if (modelStatus.isLoaded && !hasShownReadyToast.current) {
+      toast.success("AI Engine Ready");
+      hasShownReadyToast.current = true;
+    }
+  }, [modelStatus.isLoaded]);
 
   const handleJinaKeyChange = (key: string) => {
     setJinaKey(key);
