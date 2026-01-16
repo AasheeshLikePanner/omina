@@ -44,6 +44,7 @@ export default function Home() {
 
   const llmRef = useRef<WebLLMService | null>(null);
   const dragCounter = useRef(0);
+  const hasShownReadyToast = useRef(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -58,7 +59,10 @@ export default function Home() {
 
     llmRef.current = new WebLLMService((status) => {
       setModelStatus(status);
-      if (status.isLoaded) toast.success("Intelligence Engine Ready");
+      if (status.isLoaded && !hasShownReadyToast.current) {
+        toast.success("AI Engine Ready");
+        hasShownReadyToast.current = true;
+      }
     });
 
     const init = async () => {
