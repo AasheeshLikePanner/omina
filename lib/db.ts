@@ -60,7 +60,7 @@ export interface Note {
   updatedAt: number;
 }
 
-export class NexusDB extends Dexie {
+export class OmniaDB extends Dexie {
   pdfs!: Table<PDFFile>;
   messages!: Table<ChatMessage>;
   highlights!: Table<Highlight>;
@@ -68,7 +68,7 @@ export class NexusDB extends Dexie {
   notes!: Table<Note>;
 
   constructor() {
-    super('NexusDB');
+    super('OmniaDB');
     this.version(2).stores({
       pdfs: '++id, name, lastRead',
       messages: '++id, pdfId, timestamp',
@@ -79,7 +79,7 @@ export class NexusDB extends Dexie {
   }
 }
 
-export const db = new NexusDB();
+export const db = new OmniaDB();
 
 // Helper functions for notes
 export async function getNotesByPdf(pdfId: number): Promise<Note[]> {

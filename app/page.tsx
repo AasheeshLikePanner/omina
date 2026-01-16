@@ -48,7 +48,7 @@ export default function Home() {
 
   useEffect(() => {
     setIsMounted(true);
-    const savedKey = localStorage.getItem('nexus_jina_key');
+    const savedKey = localStorage.getItem('omnia_jina_key');
     if (savedKey) setJinaKey(savedKey);
 
     const initRag = async () => {
@@ -62,15 +62,14 @@ export default function Home() {
     });
 
     const init = async () => {
-      const savedPdfId = localStorage.getItem('nexus_last_pdf_id');
-      if (savedPdfId) {
-        const id = parseInt(savedPdfId);
-        if (!isNaN(id)) {
-          const pdf = await db.pdfs.get(id);
-          if (pdf) handleSelectPDF(pdf);
-        }
-      }
-      llmRef.current?.loadModel(currentModel);
+          const savedPdfId = localStorage.getItem('omnia_last_pdf_id');
+          if (savedPdfId) {
+            const id = parseInt(savedPdfId);
+            if (!isNaN(id)) {
+              const pdf = await db.pdfs.get(id);
+              if (pdf) handleSelectPDF(pdf);
+            }
+          }      llmRef.current?.loadModel(currentModel);
     };
     init();
   }, []);
@@ -85,7 +84,7 @@ export default function Home() {
 
   const handleJinaKeyChange = (key: string) => {
     setJinaKey(key);
-    localStorage.setItem('nexus_jina_key', key);
+    localStorage.setItem('omnia_jina_key', key);
   };
 
   const handleModelChange = useCallback(async (modelId: string) => {
@@ -105,7 +104,7 @@ export default function Home() {
     const freshPdf = await db.pdfs.get(id);
     if (!freshPdf) return;
 
-    localStorage.setItem('nexus_last_pdf_id', id.toString());
+    localStorage.setItem('omnia_last_pdf_id', id.toString());
     setSelectedPdf(freshPdf);
     setCurrentPage(freshPdf.currentPage || 0);
     setPdfUrl((prev) => {

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nexus PDF | Private AI Reader",
+  title: "Omnia | Private AI Reader",
   description: "Read PDFs with local AI power",
 };
 

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   PaperPlaneRight,
-  Robot,
+  BookOpen,
   User,
   Sparkle,
   CircleNotch,
@@ -101,7 +101,9 @@ export function AIChat({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center">
-              <Robot weight="fill" className="w-3.5 h-3.5 text-primary" />
+              <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" className="text-primary">
+                <path d="M240,56V200a8,8,0,0,1-8,8H160a24,24,0,0,0-24,23.94,7.9,7.9,0,0,1-5.12,7.55A8,8,0,0,1,120,232a24,24,0,0,0-24-24H24a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8H88a32,32,0,0,1,32,32v87.73a8.17,8.17,0,0,0,7.47,8.25,8,8,0,0,0,8.53-8V80a32,32,0,0,1,32-32h64A8,8,0,0,1,240,56Z" />
+              </svg>
             </div>
             <span className="font-semibold text-sm text-zinc-200">AI Assistant</span>
             {isIndexing && (
@@ -165,7 +167,11 @@ export function AIChat({
                     className={cn("flex gap-3", m.role === 'user' ? "flex-row-reverse" : "flex-row")}
                   >
                     <div className={cn("w-6 h-6 rounded flex items-center justify-center shrink-0 mt-1 shadow-sm", m.role === 'user' ? "bg-primary text-primary-foreground" : "bg-[#252525] text-zinc-400")}>
-                      {m.role === 'user' ? <User className="w-3.5 h-3.5" /> : <Robot className="w-3.5 h-3.5" />}
+                      {m.role === 'user' ? <User className="w-3.5 h-3.5" /> : (
+                        <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor">
+                          <path d="M240,56V200a8,8,0,0,1-8,8H160a24,24,0,0,0-24,23.94,7.9,7.9,0,0,1-5.12,7.55A8,8,0,0,1,120,232a24,24,0,0,0-24-24H24a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8H88a32,32,0,0,1,32,32v87.73a8.17,8.17,0,0,0,7.47,8.25,8,8,0,0,0,8.53-8V80a32,32,0,0,1,32-32h64A8,8,0,0,1,240,56Z" />
+                        </svg>
+                      )}
                     </div>
                     <div className={cn("flex-1 min-w-0 max-w-[85%]", m.role === 'user' ? "flex justify-end" : "flex justify-start")}>
                       <div className={cn(
@@ -255,7 +261,7 @@ export function AIChat({
               {webEnabled && <span className="text-[8px] font-extrabold text-amber-500/60 uppercase tracking-widest bg-amber-500/5 px-1.5 py-0.5 rounded border border-amber-500/10">WEB</span>}
             </div>
           </div>
-          <span className="text-[9px] font-bold text-zinc-700 tracking-wider uppercase">Nexus v1.0</span>
+          <span className="text-[9px] font-bold text-zinc-700 tracking-wider uppercase">Omnia v1.0</span>
         </div>
       </div>
     </div>

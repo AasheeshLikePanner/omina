@@ -78,7 +78,9 @@ export function Sidebar({
           <SidebarIcon weight="bold" className="w-5 h-5" />
         </Button>
         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
-          <BookOpen weight="fill" className="w-4 h-4 text-primary" />
+          <svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor" className="text-primary">
+            <path d="M240,56V200a8,8,0,0,1-8,8H160a24,24,0,0,0-24,23.94,7.9,7.9,0,0,1-5.12,7.55A8,8,0,0,1,120,232a24,24,0,0,0-24-24H24a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8H88a32,32,0,0,1,32,32v87.73a8.17,8.17,0,0,0,7.47,8.25,8,8,0,0,0,8.53-8V80a32,32,0,0,1,32-32h64A8,8,0,0,1,240,56Z" />
+          </svg>
         </div>
         <div className="flex-1 flex flex-col items-center gap-4">
           <Button
@@ -98,9 +100,6 @@ export function Sidebar({
             <ChatCircleDots weight={showChat ? "fill" : "bold"} className="w-5 h-5" />
           </Button>
         </div>
-        <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-zinc-100 hover:bg-white/5 h-9 w-9 mb-2">
-          <Gear weight="bold" className="w-5 h-5" />
-        </Button>
       </div>
     );
   }
@@ -109,10 +108,12 @@ export function Sidebar({
     <aside className="w-64 border-r border-[#2A2A2A]/50 bg-[#161616] flex flex-col h-screen text-zinc-400 relative group/sidebar shadow-2xl">
       <div className="p-4 flex items-center justify-between border-b border-[#2A2A2A]/50">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-md bg-white text-black flex items-center justify-center font-bold shadow-lg shadow-white/10 overflow-hidden">
-            <BookOpen weight="fill" className="w-4 h-4" />
+          <div className="w-7 h-7 rounded-md bg-white flex items-center justify-center shadow-lg shadow-white/10 overflow-hidden">
+            <svg width="18" height="18" viewBox="0 0 256 256" fill="black">
+              <path d="M240,56V200a8,8,0,0,1-8,8H160a24,24,0,0,0-24,23.94,7.9,7.9,0,0,1-5.12,7.55A8,8,0,0,1,120,232a24,24,0,0,0-24-24H24a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8H88a32,32,0,0,1,32,32v87.73a8.17,8.17,0,0,0,7.47,8.25,8,8,0,0,0,8.53-8V80a32,32,0,0,1,32-32h64A8,8,0,0,1,240,56Z" />
+            </svg>
           </div>
-          <span className="font-bold text-zinc-100 tracking-tight text-sm">Nexus Reader</span>
+          <span className="font-bold text-zinc-100 tracking-tight text-sm">Omnia</span>
         </div>
         <Button variant="ghost" size="icon" onClick={onToggleCollapse} className="text-zinc-600 hover:text-zinc-200 h-8 w-8">
           <SidebarIcon weight="bold" className="w-4 h-4" />
@@ -234,13 +235,6 @@ export function Sidebar({
           )}
         </div>
       </ScrollArea>
-
-      <div className="p-3 border-t border-[#2A2A2A]/50 bg-[#111]/30">
-        <Button variant="ghost" className="w-full justify-start gap-3 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800/40 rounded-lg h-9 transition-all">
-          <Gear weight="bold" className="w-4 h-4" />
-          <span className="text-xs font-semibold">Settings</span>
-        </Button>
-      </div>
     </aside>
   );
 }
