@@ -42,6 +42,7 @@ export function Dropzone({ onFileUploaded }: DropzoneProps) {
 
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
 
     const file = e.dataTransfer.files[0];
@@ -60,10 +61,10 @@ export function Dropzone({ onFileUploaded }: DropzoneProps) {
       onDrop={handleDrop}
       className={cn(
         "relative group cursor-pointer transition-all duration-300",
-        "flex flex-col items-center justify-center p-12 rounded-2xl border-2 border-dashed",
+        "flex flex-col items-center justify-center p-16 rounded-lg border border-[#2A2A2A]",
         isDragging
-          ? "border-primary bg-primary/5 scale-[1.02]"
-          : "border-[#2A2A2A] bg-[#1c1c1c] hover:border-zinc-700"
+          ? "border-primary bg-primary/5"
+          : "bg-[#1c1c1c]/50 hover:bg-[#1c1c1c] hover:border-zinc-700"
       )}
     >
       <input
@@ -73,26 +74,25 @@ export function Dropzone({ onFileUploaded }: DropzoneProps) {
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
       />
 
-      <div className="w-16 h-16 rounded-full bg-[#212121] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+      <div className="mb-6">
         <Upload className={cn(
-          "w-8 h-8 transition-colors",
-          isDragging ? "text-primary" : "text-zinc-500 group-hover:text-zinc-300"
+          "w-10 h-10 transition-colors",
+          isDragging ? "text-primary" : "text-zinc-700 group-hover:text-zinc-400"
         )} />
       </div>
 
-      <div className="text-center space-y-2">
-        <h3 className="text-xl font-semibold text-foreground">
-          {isDragging ? "Drop your PDF here" : "Upload your document"}
+      <div className="text-center space-y-1">
+        <h3 className="text-sm font-bold text-zinc-200 uppercase tracking-[0.2em]">
+          {isDragging ? "Drop Document" : "Import PDF"}
         </h3>
-        <p className="text-sm text-zinc-500 max-w-xs mx-auto">
-          Drag and drop your PDF here, or click to browse. Everything stays on your device.
+        <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
+          Local Storage only
         </p>
       </div>
 
-      <div className="mt-8 flex items-center gap-4">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#212121] text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-          <FileUp className="w-3 h-3" />
-          Max 100MB
+      <div className="mt-8">
+        <div className="flex items-center gap-2 px-3 py-1 bg-black/40 text-[9px] font-bold uppercase tracking-[0.3em] text-zinc-500 border border-white/5 rounded">
+          Ready for processing
         </div>
       </div>
     </div>

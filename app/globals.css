@@ -139,3 +139,10 @@
 .pdf-viewer-dark .rpv-core__viewer {
   background-color: #161616 !important;
 }
+
+@keyframes scan {
+  0% { top: 0; opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}

@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { db, type PDFFile, type Note, addNote, addBookmark } from '@/lib/db';
 import { WebLLMService, type ModelStatus, APP_MODELS } from '@/lib/webllm';
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { cn } from '@/lib/utils';
-import { CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, Cpu, Sparkle, Notebook } from '@phosphor-icons/react';
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,7 +18,11 @@ const PDFViewer = dynamic(() => import('@/components/Viewer').then(mod => mod.PD
 const AIChat = dynamic(() => import('@/components/AIChat').then(mod => mod.AIChat), { ssr: false });
 const NotesPanel = dynamic(() => import('@/components/NotesPanel').then(mod => mod.NotesPanel), { ssr: false });
 
-export default function Home() {
+function HomeContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pdfIdParam = searchParams.get('id');
+
   const [isMounted, setIsMounted] = useState(false);
   const [selectedPdf, setSelectedPdf] = useState<PDFFile | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -75,63 +80,16 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showChat]);
 
-  useEffect(() => {
-    setIsMounted(true);
-    const savedKey = localStorage.getItem('omnia_jina_key');
-    if (savedKey) setJinaKey(savedKey);
-
-    const initRag = async () => {
-      const { ragEngine } = await import('@/lib/rag');
-      await ragEngine.init();
-    };
-    initRag();
-
-    llmRef.current = new WebLLMService((status) => {
-      setModelStatus(status);
-    });
-
-    const init = async () => {
-          const savedPdfId = localStorage.getItem('omnia_last_pdf_id');
-          if (savedPdfId) {
-            const id = parseInt(savedPdfId);
-            if (!isNaN(id)) {
-              const pdf = await db.pdfs.get(id);
-              if (pdf) handleSelectPDF(pdf);
-            }
-          }      llmRef.current?.loadModel(currentModel);
-    };
-    init();
-  }, []);
-
-  // Separate effect for the ready toast to ensure it only fires once
-  useEffect(() => {
-    if (modelStatus.isLoaded && !hasShownReadyToast.current) {
-      toast.success("AI Engine Ready");
-      hasShownReadyToast.current = true;
-    }
-  }, [modelStatus.isLoaded]);
-
-  const handleJinaKeyChange = (key: string) => {
-    setJinaKey(key);
-    localStorage.setItem('omnia_jina_key', key);
-  };
-
-  const handleModelChange = useCallback(async (modelId: string) => {
-    setCurrentModel(modelId);
-    if (llmRef.current) await llmRef.current.loadModel(modelId);
-  }, []);
-
-  const handleFileUploaded = useCallback(async (id: number) => {
-    const pdf = await db.pdfs.get(id);
-    if (pdf) handleSelectPDF(pdf);
-  }, []);
-
-  const handleSelectPDF = useCallback(async (pdfOrId: PDFFile | number) => {
+  const handleSelectPDF = useCallback(async (pdfOrId: PDFFile | number, updateUrl = true) => {
     let id = typeof pdfOrId === 'number' ? pdfOrId : pdfOrId.id;
     if (!id) return;
 
     const freshPdf = await db.pdfs.get(id);
     if (!freshPdf) return;
+
+    if (updateUrl) {
+      router.push(`/?id=${id}`);
+    }
 
     localStorage.setItem('omnia_last_pdf_id', id.toString());
     setSelectedPdf(freshPdf);
@@ -160,7 +118,72 @@ export default function Home() {
         setIsIndexing(false);
       }
     }
-  }, [ragEnabled]);
+  }, [ragEnabled, router]);
+
+  // Sync state with URL param
+  useEffect(() => {
+    if (!isMounted) return;    
+    const loadPdfFromParam = async () => {
+      if (pdfIdParam) {
+        const id = parseInt(pdfIdParam);
+        if (!isNaN(id) && selectedPdf?.id !== id) {
+          const pdf = await db.pdfs.get(id);
+          if (pdf) {
+            handleSelectPDF(pdf, false); 
+          }
+        }
+      } else if (selectedPdf) {
+        setSelectedPdf(null);
+        setPdfUrl(null);
+        setSidebarCollapsed(false);
+      }
+    };
+    loadPdfFromParam();
+  }, [pdfIdParam, isMounted, handleSelectPDF, selectedPdf?.id]);
+
+  useEffect(() => {
+    setIsMounted(true);
+    const savedKey = localStorage.getItem('omnia_jina_key');
+    if (savedKey) setJinaKey(savedKey);
+
+    const initRag = async () => {
+      const { ragEngine } = await import('@/lib/rag');
+      await ragEngine.init();
+    };
+    initRag();
+
+    llmRef.current = new WebLLMService((status) => {
+      setModelStatus(status);
+    });
+
+    const init = async () => {
+      llmRef.current?.loadModel(currentModel);
+    };
+    init();
+  }, []);
+
+  // Separate effect for the ready toast to ensure it only fires once
+  useEffect(() => {
+    if (modelStatus.isLoaded && !hasShownReadyToast.current) {
+      toast.success("AI Engine Ready");
+      hasShownReadyToast.current = true;
+    }
+  }, [modelStatus.isLoaded]);
+
+  const handleJinaKeyChange = (key: string) => {
+    setJinaKey(key);
+    localStorage.setItem('omnia_jina_key', key);
+  };
+
+  const handleModelChange = useCallback(async (modelId: string) => {
+    setCurrentModel(modelId);
+    if (llmRef.current) await llmRef.current.loadModel(modelId);
+  }, []);
+
+  const handleFileUploaded = useCallback(async (id: number) => {
+    const pdf = await db.pdfs.get(id);
+    if (pdf) handleSelectPDF(pdf);
+  }, [handleSelectPDF]);
 
   const handleSendMessage = useCallback(async (content: string) => {
     if (!llmRef.current || !modelStatus.isLoaded) return; 
@@ -232,7 +255,7 @@ ${pdfContext}
       setMessages(newMessages);
 
             const chatMessages = [
-              { 
+              {
                 role: "system" as const, 
                 content: `You are an insightful AI Assistant. Use Markdown to format your response for high readability.
                 
@@ -302,10 +325,11 @@ Question: ${text}` : text);
   }, [selectedPdf?.id]);
 
   const handleImportNew = useCallback(() => {
+    router.push('/');
     setSelectedPdf(null);
     setPdfUrl(null);
     setSidebarCollapsed(false);
-  }, []);
+  }, [router]);
 
   const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); dragCounter.current++; if (e.dataTransfer.items.length > 0) setIsWindowDragging(true); };
   const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); dragCounter.current--; if (dragCounter.current === 0) setIsWindowDragging(false); };
@@ -318,10 +342,106 @@ Question: ${text}` : text);
       {isMounted ? (
         <>
           <Sidebar onSelectPDF={handleSelectPDF} selectedPdfId={selectedPdf?.id} modelStatus={modelStatus} currentModel={currentModel} onModelChange={handleModelChange} isCollapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} onImportNew={handleImportNew} showNotes={showNotesPanel} onToggleNotes={() => setShowNotesPanel(!showNotesPanel)} showChat={showChat} onToggleChat={() => setShowChat(!showChat)} />
-          <div className="flex-1 flex flex-col min-w-0 bg-[#161616]">
-            {!selectedPdf && <header className="h-14 border-b border-[#2A2A2A] flex items-center px-8"><h2 className="text-sm font-bold tracking-widest uppercase text-zinc-500">Workspace</h2></header>}
-            <div className={cn("flex-1 flex overflow-hidden", selectedPdf ? "p-0" : "p-8")}>
-              <div className="flex-1 min-w-0 relative">{pdfUrl && selectedPdf ? <PDFViewer key={selectedPdf?.id} fileUrl={pdfUrl} isDarkMode={isPdfDarkMode} initialPage={selectedPdf?.currentPage || 0} onAskAI={handleAskAI} onPageChange={handlePageChange} onToggleTheme={() => setIsPdfDarkMode(!isPdfDarkMode)} onAddNote={handleAddNote} onAddBookmark={handleAddBookmark} jumpToPage={jumpToPage} /> : <div className="h-full flex items-center justify-center"><div className="w-full max-w-xl"><Dropzone onFileUploaded={handleFileUploaded} /></div></div>}</div>
+          <div className="flex-1 flex flex-col min-w-0 bg-[#161616] relative overflow-hidden">
+            {!selectedPdf && (
+              <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-12">
+                <div className="w-full max-w-2xl space-y-8">
+                  {/* Integrated Header Branding */}
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-5"
+                  >
+                    <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-xl shadow-white/5 shrink-0">
+                      <svg width="32" height="32" viewBox="0 0 256 256" fill="black">
+                        <path d="M240,56V200a8,8,0,0,1-8,8H160a24,24,0,0,0-24,23.94,7.9,7.9,0,0,1-5.12,7.55A8,8,0,0,1,120,232a24,24,0,0,0-24-24H24a8,8,0,0,1-8-8V56a8,8,0,0,1,8-8H88a32,32,0,0,1,32,32v87.73a8.17,8.17,0,0,0,7.47,8.25,8,8,0,0,0,8.53-8V80a32,32,0,0,1,32-32h64A8,8,0,0,1,240,56Z" />
+                      </svg>
+                    </div>
+                    <div className="space-y-1">
+                      <h1 className="text-xl font-bold tracking-[-0.02em] text-white uppercase">OMNIA</h1>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.3em]">Knowledge Interface</span>
+                        <div className="w-1 h-1 rounded-full bg-primary/40" />
+                        <span className="text-[10px] font-bold text-primary uppercase tracking-[0.3em]">v1.0.0 Stable</span>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Primary Workspace Console */}
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="border border-[#2A2A2A] bg-[#1a1a1a]/50 overflow-hidden rounded-xl"
+                  >
+                    <div className="px-4 py-3 border-b border-[#2A2A2A] bg-white/[0.02] flex items-center justify-between">
+                      <div className="flex gap-4 items-center">
+                        <div className="flex gap-1.5">
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#2A2A2A]" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#2A2A2A]" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#2A2A2A]" />
+                        </div>
+                        <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-[0.4em]">Secure_Workspace_Initialized</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[9px] font-bold text-primary uppercase tracking-widest px-2 py-0.5 bg-primary/10 rounded">No Account Required</span>
+                        <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest px-2 py-0.5 bg-emerald-500/10 rounded">100% Free</span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-1">
+                      <Dropzone onFileUploaded={handleFileUploaded} />
+                    </div>
+
+                    <div className="grid grid-cols-3 divide-x divide-[#2A2A2A] border-t border-[#2A2A2A]">
+                      <div className="p-5 space-y-1.5">
+                        <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest block">Core_Engine</span>
+                        <p className="text-xs text-zinc-400 font-medium">Local-Only AI (Web-GPU)</p>
+                      </div>
+                      <div className="p-5 space-y-1.5">
+                        <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest block">Data_Privacy</span>
+                        <p className="text-xs text-zinc-400 font-medium">Zero-Cloud Architecture</p>
+                      </div>
+                      <div className="p-5 space-y-1.5">
+                        <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest block">Authentication</span>
+                        <p className="text-xs text-zinc-400 font-medium">No Signup / Peer-to-Peer</p>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Privacy Badges */}
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="grid grid-cols-2 gap-4"
+                  >
+                    <div className="flex items-center gap-4 p-4 rounded-xl border border-white/[0.03] bg-white/[0.01]">
+                      <div className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center text-zinc-500">
+                        <Cpu weight="bold" size={16} />
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="text-[10px] font-bold text-zinc-200 uppercase tracking-wider">Hardware Processing</div>
+                        <p className="text-[10px] text-zinc-600 font-medium">Your CPU/GPU handles all AI logic.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 p-4 rounded-xl border border-white/[0.03] bg-white/[0.01]">
+                      <div className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center text-zinc-500">
+                        <Sparkle weight="bold" size={16} />
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="text-[10px] font-bold text-zinc-200 uppercase tracking-wider">Cloud Air-Gap</div>
+                        <p className="text-[10px] text-zinc-600 font-medium">Documents stay in local storage.</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+            )}
+            <div className={cn("flex-1 flex overflow-hidden", selectedPdf ? "p-0" : "hidden")}>
+              <div className="flex-1 min-w-0 relative">
+                {pdfUrl && selectedPdf && <PDFViewer key={selectedPdf?.id} fileUrl={pdfUrl} isDarkMode={isPdfDarkMode} initialPage={selectedPdf?.currentPage || 0} onAskAI={handleAskAI} onPageChange={handlePageChange} onToggleTheme={() => setIsPdfDarkMode(!isPdfDarkMode)} onAddNote={handleAddNote} onAddBookmark={handleAddBookmark} jumpToPage={jumpToPage} />}
+              </div>
               {selectedPdf && (showNotesPanel || showChat) && (
                 <div className="flex h-full relative border-l border-[#2A2A2A]">
                   <AnimatePresence mode="popLayout" initial={false}>
@@ -336,5 +456,13 @@ Question: ${text}` : text);
       ) : <div className="h-screen w-full bg-[#161616]" />}
       <Toaster theme="dark" position="bottom-right" />
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="h-screen w-full bg-[#161616]" />}>
+      <HomeContent />
+    </Suspense>
   );
 }
