@@ -361,7 +361,7 @@ Example: {"Ä": "A", "ƒ": "ā"}`;
           3. CLEAN OUTPUT: Deliver factual answers only. Do not discuss encoding issues.`
         },
         ...messages.slice(-2),
-        { role: 'user', content: contextParts.length > 0 ? `${contextParts.join('\n\n')}\n\nLATEST USER QUESTION: ${content}` : content }
+        { role: 'user' as const, content: contextParts.length > 0 ? `${contextParts.join('\n\n')}\n\nLATEST USER QUESTION: ${content}` : content }
       ];
 
       const chunks = await llmRef.current.chat(chatMessages);
